@@ -1,96 +1,84 @@
-import React, { useEffect, useState } from 'react';
-import {
-  createBrowserRouter,
-  RouterProvider,
-} from "react-router-dom";
-
-import './App.css';
-import './assets/css/responsive.css';
-import './assets/css/style.css';
-
-import Home from "./pages/home";
-import Services from './pages/services';
-import About from './pages/about';
-import Features from './pages/features';
-import Team from './pages/team';
-import Blog from './pages/blog';
-import Contact from './pages/contact';
-
-const router = createBrowserRouter([
-  {
-    path: "/",
-    element: <Home />,
-  }, {
-    path: "/services",
-    element: <Services />,
-  }, {
-    path: "/about",
-    element: <About />,
-  }, {
-    path: "/features",
-    element: <Features />,
-  }, {
-    path: "/team",
-    element: <Team />,
-  }, {
-    path: "/team",
-    element: <Team />,
-  }, {
-    path: "/blog",
-    element: <Blog />,
-  }, {
-    path: "/contact",
-    element: <Contact />,
-  },
-]);
+import React, { useState } from "react";
+import Web3 from "web3";
 
 function App() {
+  const [account, setAccount] = useState("");
+  const [balance, setBalance] = useState("");
+  const [recipient, setRecipient] = useState("");
+  const [amount, setAmount] = useState("");
 
-  const [isBackendConnected, setIsBackendConnected] = useState(true);
+  let web3;
 
-  useEffect(() => {
-    const checkBackendConnection = async () => {
-      try {
-        const response = await fetch('http://localhost:3003/ping');
-        if (!response.ok) {
-          setIsBackendConnected(false);
-          console.log('here')
-        }
-      } catch (error) {
-        setIsBackendConnected(false);
-      }
-    };
-    checkBackendConnection();
-  }, []);
+  // Connect Wallet
+  const connectWallet = async () => {
+    if (window.ethereum) {
+      web3 = new Web3(window.ethereum);
+      await window.ethereum.request({ method: "eth_requestAccounts" });
+
+      const accounts = await web3.eth.getAccounts();
+      setAccount(accounts[0]);
+
+      const bal = await web3.eth.getBalance(accounts[0]);
+      setBalance(web3.utils.fromWei(bal, "ether"));
+    } else {
+      alert("Please install MetaMask");
+    }
+  };
+
+  // Send ETH
+  const sendEth = async () => {
+    if (!window.ethereum) return alert("Install MetaMask");
+
+    web3 = new Web3(window.ethereum);
+
+    try {
+      await web3.eth.sendTransaction({
+        from: account,
+        to: recipient,
+        value: web3.utils.toWei(amount, "ether"),
+      });
+
+      alert("Transaction successful!");
+    } catch (err) {
+      console.error(err);
+      alert("Transaction failed");
+    }
+  };
 
   return (
-    <div>
-      {isBackendConnected ? (
-        <RouterProvider 
-          router={router} 
-        />
-      ) : (
-        <div>Can't access to Backend API</div>
+    <div style={{ padding: 20 }}>
+      <h2>Simple ETH Wallet</h2>
+
+      <button onClick={connectWallet}>Connect Wallet</button>
+
+      {account && (
+        <div>
+          <p><b>Account:</b> {account}</p>
+          <p><b>Balance:</b> {balance} ETH</p>
+        </div>
       )}
+
+      <hr />
+
+      <h3>Send ETH</h3>
+
+      <input
+        placeholder="Recipient Address"
+        value={recipient}
+        onChange={(e) => setRecipient(e.target.value)}
+        style={{ width: "300px", display: "block", marginBottom: 10 }}
+      />
+
+      <input
+        placeholder="Amount in ETH"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        style={{ width: "300px", display: "block", marginBottom: 10 }}
+      />
+
+      <button onClick={sendEth}>Send ETH</button>
     </div>
   );
 }
-
-// <div className="App">
-    //   <header className="App-header">
-    //     <img src={logo} className="App-logo" alt="logo" />
-    //     <p>
-    //       Edit <code>src/App.js</code> and save to reload.
-    //     </p>
-    //     <a
-    //       className="App-link"
-    //       href="https://reactjs.org"
-    //       target="_blank"
-    //       rel="noopener noreferrer"
-    //     >
-    //       Learn React
-    //     </a>
-    //   </header>
-    // </div>
 
 export default App;
